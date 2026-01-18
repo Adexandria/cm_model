@@ -3,4 +3,5 @@
 __pycache__/
 *.db
 .env
+!example.env
 data/
