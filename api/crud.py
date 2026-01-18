@@ -172,6 +172,10 @@ def change_user_password(db: Session, user: DbUser, new_password: str) -> DbUser
     db.refresh(user)
     return user
 
+def verify_user_password(user: DbUser, password: str) -> bool:
+    """Verify a user's password."""
+    return pwd_context.verify(password, user.password_hashed)
+
 def confirm_user_email(db: Session, user: DbUser) -> DbUser:
     """Confirm a user's email address."""
     user.is_email_confirmed = True

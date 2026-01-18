@@ -57,6 +57,53 @@ class UserCreate(BaseModel):
             raise ValueError('Username can only contain lowercase letters, numbers, and underscores, with no spaces.')
         return self
 
+class ChangePasswordRequest(BaseModel):
+    """
+    Change password model
+    """
+    old_password: str =Field(..., min_length=6, description="Old password must be at least 6 characters long")
+    new_password: str =Field(..., min_length=6, description="New password must be at least 6 characters long")
+    repeat_new_password: str =Field(..., min_length=6, description="Repeat new password must be at least 6 characters long")
+
+    """Change password model with password validation"""
+    @model_validator(mode='after')
+    def validate_new_password(self,):
+        new_password = self.new_password
+        if not re.match(r'^(?=.*[A-Z])(?=.*\d)(?=.*[@#$%&*])[A-Za-z\d@#$%&*]{6,}$', new_password):
+            raise ValueError('New password must contain at least one uppercase letter, one digit, and one special character(@,#,$,%,&,*).')
+        return self
+
+    """Ensure new passwords match"""
+    @model_validator(mode='after')
+    def new_passwords_match(self):
+        if self.new_password != self.repeat_new_password:
+            raise ValueError('New passwords do not match')
+        return self
+    
+    
+
+class PasswordResetRequest(BaseModel):
+    """
+    Password reset model
+    """
+    new_password: str =Field(..., min_length=6, description="New password must be at least 6 characters long")
+    repeat_new_password: str =Field(..., min_length=6, description="Repeat new password must be at least 6 characters long")
+
+    """Password reset model with password validation"""
+    @model_validator(mode='after')
+    def validate_new_password(self,):
+        new_password = self.new_password
+        if not re.match(r'^(?=.*[A-Z])(?=.*\d)(?=.*[@#$%&*])[A-Za-z\d@#$%&*]{6,}$', new_password):
+            raise ValueError('New password must contain at least one uppercase letter, one digit, and one special character(@,#,$,%,&,*).')
+        return self
+
+    """Ensure new passwords match"""
+    @model_validator(mode='after')
+    def new_passwords_match(self):
+        if self.new_password != self.repeat_new_password:
+            raise ValueError('New passwords do not match')
+        return self
+    
 """Login response model"""
 class LoginResponse(BaseModel):
     username: str

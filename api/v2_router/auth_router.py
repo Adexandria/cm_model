@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter, Cookie, Response
 from datetime import datetime
-from api.models.user import LoginResponse, TokenResponse,UserCreate,SignUpRequest, DbUser
+from api.models.user import LoginResponse, TokenResponse,UserCreate,SignUpRequest, PasswordResetRequest,DbUser, ChangePasswordRequest
 from sqlalchemy.orm import Session
 from database import get_db
 from api import crud, auth
@@ -249,10 +249,17 @@ async def verify_two_factor_auth(totp:int, response: Response, current_user: DbU
     
 
 @router.post("/change-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def change_password(new_password: str, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+async def change_password(change_password_request: ChangePasswordRequest, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Change the password for the current user."""
     try:
-        _ = crud.change_user_password(db, current_user, new_password)
+        is_valid_password = crud.verify_user_password(current_user, change_password_request.current_password)
+        if not is_valid_password:
+            raise badRequestException(message="Invalid current password.")
+        
+        if change_password_request.current_password == change_password_request.new_password:
+            raise badRequestException(message="New password cannot be the same as the current password.")
+        
+        _ = crud.change_user_password(db, current_user, change_password_request.new_password)
         return {"message": "Password changed successfully."}
     except Exception as e:
         raise serverErrorException(message=str(e))
@@ -280,12 +287,11 @@ async def forget_password(email: str, db: Session = Depends(get_db)):
         raise serverErrorException(message=str(e))
     
 @router.post("/reset-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def reset_password(reset_token: str, new_password: str, db: Session = Depends(get_db)):
+async def reset_password(reset_token: str, password_reset_request: PasswordResetRequest, db: Session = Depends(get_db)):
     """Endpoint to reset password using reset token."""
     try:
         user = await auth.verify_password_reset_token(reset_token=reset_token, db=db)
-        _ = crud.change_user_password(db, user, new_password)
-
+        _ = crud.change_user_password(db, user, password_reset_request.new_password)
         return {"message": "Password has been reset successfully."}
     except Exception as e:
         raise serverErrorException(message=str(e))
