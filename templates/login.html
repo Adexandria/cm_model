@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>New Login Alert</title>
+    <style>
+        /* General Resets */
+        table, td, div, h1, p {font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;}
+        table, td {border-collapse: collapse; border-spacing: 0;}
+        body {margin: 0; padding: 0; width: 100% !important; height: 100% !important; -webkit-font-smoothing: antialiased; background-color: #f6f9fc; color: #333333;}
+        
+        /* Elements */
+        .wrapper {width: 100%; table-layout: fixed; background-color: #f6f9fc; padding-bottom: 40px;}
+        .main-container {background-color: #ffffff; margin: 0 auto; width: 100%; max-width: 600px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.04);}
+        .header-strip {background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%); height: 6px; width: 100%;}
+        
+        /* Typography */
+        h1 {font-size: 24px; font-weight: 700; color: #1f2937; margin: 0 0 10px 0; text-align: center;}
+        p {font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 20px 0;}
+        .small-text {font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;}
+        
+        /* The Details Box - Centered Single Item */
+        .details-box {background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 25px 0; width: 100%;}
+        .details-label {font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; display: block; margin-bottom: 6px;}
+        .details-value {font-size: 18px; font-weight: 600; color: #1e293b; letter-spacing: -0.5px;} 
+        
+        /* Button */
+        .btn-container {text-align: center; margin: 35px 0;}
+        .btn {background-color: #ef4444; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);}
+        .btn:hover {background-color: #dc2626;}
+        
+        /* Footer links */
+        .footer-link {color: #6b7280; text-decoration: underline;}
+        
+        /* Mobile */
+        @media screen and (max-width: 600px) {
+            .main-container {width: 100% !important; border-radius: 0 !important;}
+            .content-padding {padding: 30px 20px !important;}
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <table role="presentation" width="100%">
+            <tr>
+                <td align="center" style="padding-top: 40px;">
+                    
+                    <table role="presentation" class="main-container">
+                        <tr><td class="header-strip"></td></tr>
+                        
+                        <tr>
+                            <td class="content-padding" style="padding: 40px 50px;">
+                                
+                                <div style="text-align: center; margin-bottom: 30px;">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/2622/2622075.png" alt="Security Shield" width="64" style="display: block; margin: 0 auto; opacity: 0.9;">
+                                </div>
+
+                                <h1>New sign-in detected</h1>
+                                
+                                <p style="text-align: center;">
+                                    Hi <strong>{{username}}</strong>, we noticed a new sign-in to your account.
+                                </p>
+
+                                <table role="presentation" class="details-box" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="padding: 25px; text-align: center;">
+                                            <span class="details-label">Time of Login</span>
+                                            <span class="details-value">{{login_time}}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="text-align: center; font-size: 15px;">
+                                    If this was you, you can safely ignore this email. <br>
+                                    If you don't recognize this activity, please secure your account immediately.
+                                </p>
+
+                                <div class="btn-container">
+                                    <a href="{{secure_link}}" class="btn">No, secure my account</a>
+                                </div>
+
+                                <div class="small-text">
+                                    <p style="margin: 0;">{{company_name}}, {{company_address}}</p>
+                                    <p style="margin-top: 10px;">
+                                        <a href="{{help_link}}" class="footer-link">Help Center</a> &bull; 
+                                        <a href="{{unsubscribe_link}}" class="footer-link">Unsubscribe</a>
+                                    </p>
+                                </div>
+
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div style="height: 40px;"></div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
