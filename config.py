@@ -1,5 +1,5 @@
 
-
+"""Configuration file for category definitions used in content moderation."""
 LLM_CATEGORIES =  ['hate speech', 
                'dangerous individuals and organisations',
                  'violence and incitement', 
