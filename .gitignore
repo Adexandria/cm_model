@@ -1,2 +1,6 @@
 .venv/
-
+*.pth
+__pycache__/
+*.db
+.env
+data/
