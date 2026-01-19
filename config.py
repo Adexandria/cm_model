@@ -36,3 +36,14 @@ CATEGORIES = [
     "regulated goods",
     "bullying & harassment"
 ]
+
+FIELDS = {
+    "case_name":"Case name",
+    "summary":"Summary",
+    "FB_category":"FB category",
+    "summary_issue":"summary / issue",
+    "category":"category",
+    "full_abstract":"full abstract"
+}
+ALLOWED_FILE_TYPES = ["csv", "xlsx", "xls"]
+DANGEROUS_PREFIXES = ("=", "+", "-", "@")

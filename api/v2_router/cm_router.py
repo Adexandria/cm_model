@@ -3,9 +3,9 @@ from fastapi import APIRouter, Cookie,UploadFile
 from api.models.user import PredictionExplanationRequest, TrainModelRequest,DbUser, PredictionRequest, TrainModelResponse
 from sqlalchemy.orm import Session
 from database import get_db
-from api import crud, auth
+from api import crud, auth, dataset_validator
 from fastapi import Depends
-from exception import unauthorizedException, notFoundException, serverErrorException
+from exception import badRequestException, notFoundException, serverErrorException
 import pandas as pd
 from pipeline import model_pipeline
 from blob.push_blob import upload_blob
@@ -18,18 +18,30 @@ router = APIRouter(
 )
 
 @router.post("/train-model", response_model=TrainModelResponse, responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def train_model(model_name: str, file : UploadFile, train_model_request: TrainModelRequest = Depends(TrainModelRequest.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
+async def train_model(model_name: str, file : UploadFile, hyperparameters: TrainModelRequest = Depends(TrainModelRequest.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
     """Endpoint to trigger model training."""
     try:
-        data = pd.read_csv(file.file)
+        if not file.filename.lower().endswith(".csv"):
+            raise notFoundException(message="Only CSV files are supported.")
+
+        if file.content_type not in ("text/csv", "application/vnd.ms-excel"):
+            raise notFoundException(message="Invalid content type")
+        
+        contents = await file.read()
+        
+        is_valid, validation_message = dataset_validator.validate_dataset(contents)
+        if not is_valid:
+            return badRequestException(message=validation_message)
+
+        data = pd.read_csv("sanitized_dataset.csv")
         kwargs = {
             "out_path": "processed_data.csv",
             "model_path": f"{model_name}_model.pth",
-            "n_estimators": train_model_request.n_estimators,
-            "max_depth": train_model_request.max_depth,
-            "class_weight": train_model_request.class_weight.value,
-            "random_state": train_model_request.random_state,
-            "use_augmentation": train_model_request.use_augmentation
+            "n_estimators": hyperparameters.n_estimators,
+            "max_depth": hyperparameters.max_depth,
+            "class_weight": hyperparameters.class_weight.value,
+            "random_state": hyperparameters.random_state,
+            "use_augmentation": hyperparameters.use_augmentation
             }
         
         accuracy, report = model_pipeline(data=data, **kwargs)
