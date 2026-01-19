@@ -1,6 +1,6 @@
 import os
 from fastapi import APIRouter, Cookie,UploadFile
-from api.models.user import PredictionExplanationRequest, TrainModelRequest,DbUser, PredictionRequest, TrainModelResponse
+from api.models.user import PredictionExplanationRequest, TrainModelRequestWithValidation,DbUser, PredictionRequest, TrainModelResponse
 from sqlalchemy.orm import Session
 from database import get_db
 from api import crud, auth, dataset_validator
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 @router.post("/train-model", response_model=TrainModelResponse, responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def train_model(model_name: str, file : UploadFile, hyperparameters: TrainModelRequest = Depends(TrainModelRequest.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
+async def train_model(model_name: str, file : UploadFile, hyperparameters: TrainModelRequestWithValidation = Depends(TrainModelRequestWithValidation.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
     """Endpoint to trigger model training."""
     try:
         if not file.filename.lower().endswith(".csv"):
@@ -28,7 +28,7 @@ async def train_model(model_name: str, file : UploadFile, hyperparameters: Train
             raise notFoundException(message="Invalid content type")
         
         contents = await file.read()
-        
+
         is_valid, validation_message = dataset_validator.validate_dataset(contents)
         if not is_valid:
             return badRequestException(message=validation_message)

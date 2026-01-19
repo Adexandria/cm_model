@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 @router.post("/train-model",response_model=TrainModelResponse, responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def train_model(model_name: str, file : UploadFile,train_model_request: TrainModelRequest = Depends(TrainModelRequest.as_form()), is_authenticated: bool = Depends(auth.authenticate_user_by_token)):
+async def train_model(model_name: str, file : UploadFile,hyperparameters: TrainModelRequest= Depends(TrainModelRequest.as_form()), is_authenticated: bool = Depends(auth.authenticate_user_by_token)):
     """Endpoint to trigger model training."""
     try:
         if(not is_authenticated):
@@ -28,11 +28,11 @@ async def train_model(model_name: str, file : UploadFile,train_model_request: Tr
         kwargs = {
             "out_path": "processed_data.csv",
             "model_path": f"{model_name}_model.pth",
-            "n_estimators": train_model_request.n_estimators,
-            "max_depth": train_model_request.max_depth,
-            "class_weight": train_model_request.class_weight.value,
-            "random_state": train_model_request.random_state,
-            "use_augmentation": train_model_request.use_augmentation
+            "n_estimators": hyperparameters.n_estimators,
+            "max_depth": hyperparameters.max_depth,
+            "class_weight": hyperparameters.class_weight.value,
+            "random_state": hyperparameters.random_state,
+            "use_augmentation": hyperparameters.use_augmentation
             }
         
         accuracy, report = model_pipeline(data=data, **kwargs)

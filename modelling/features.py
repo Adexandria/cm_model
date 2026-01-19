@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import DataFrame
 import random
 import ast
-
+from config import FIELDS
 
 def feature_analysis(path: str = 'extracted_features.csv'):
         """Basic feature analysis for a CSV at `path`.
@@ -56,12 +56,12 @@ def dataframe_feature_extraction(data: pd.DataFrame,
         """
         combined_out_path = os.path.join("data", out_path)
 
-        case = data['Case name'].fillna('') + "|" + data['summary'].fillna('')
-        summary_issue = data.get('summary / issue')
-        llm_category = data.get('FB category')
-        category = data.get('category')
-        full_abstract = data.get('full abstract ')
-
+        case = data[FIELDS["case_name"]].fillna('') + "|" + data[FIELDS["summary"]].fillna('')
+        summary_issue = data.get(FIELDS["summary_issue"])
+        llm_category = data.get(FIELDS["FB_category"])
+        category = data.get(FIELDS["category"])
+        full_abstract = data.get(FIELDS["full_abstract"])
+        
         # Build and save cleaned category lists
         _ = normalize_category_labels(llm_category, path=os.path.join('data', 'llm_categories.txt'))
         cleaned_category = normalize_category_labels(category, path=os.path.join('data', 'categories.txt'))

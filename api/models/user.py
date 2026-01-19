@@ -178,21 +178,63 @@ class PredictionExplanationRequest(BaseModel):
         return self
     
 """Train model request model"""
-class TrainModelRequest(BaseModel):
+class TrainModelRequestWithValidation(BaseModel):
     out_path: str = Field(..., example="processed_data.csv")
-    n_estimators: int = Field(100, example=100)
-    max_depth: int = Field(10, example=10)
+    n_estimators: int = Field(100, example=100, ge=100, le=300)
+    max_depth: int = Field(10, example=10, ge=1, le=50)
     class_weight: class_weights = Field(class_weights.balanced, example="balanced")
-    random_state: int = Field(42, example=42)
+    random_state: int = Field(42, example=42, ge=1, le=100)
     use_augmentation: bool = Field(False, example=False)
 
     """Allow form data submission"""
     @classmethod
     def as_form(cls):
         def _as_form(
-                train_model_request: str = Form(...)
+                out_path: str = Form(..., example="processed_data.csv"),
+                n_estimators: int = Form(100, example=100, ge=100, le=300),
+                max_depth: int = Form(10, example=10, ge=1, le=50),
+                class_weight: class_weights = Form(class_weights.balanced, example="balanced"),
+                random_state: int = Form(42, example=42, ge=1, le=100),
+                use_augmentation: bool = Form(False, example=False)
         ):
-            return cls(**json.loads(train_model_request))
+            return cls(**json.loads(json.dumps({
+                "out_path": out_path,
+                "n_estimators": n_estimators,
+                "max_depth": max_depth,
+                "class_weight": class_weight,
+                "random_state": random_state,
+                "use_augmentation": use_augmentation})))
+        return _as_form
+
+
+
+"""Train model request model"""
+class TrainModelRequest(BaseModel):
+    out_path: str = Field(..., example="processed_data.csv")
+    n_estimators: int = Field(100, example=100)
+    max_depth: int = Field(10, example=10)
+    class_weight: class_weights = Field(class_weights.balanced, example="balanced")
+    random_state: int = Field(42, example=42,)
+    use_augmentation: bool = Field(False, example=False)
+
+    """Allow form data submission"""
+    @classmethod
+    def as_form(cls):
+        def _as_form(
+                out_path: str = Form(..., example="processed_data.csv"),
+                n_estimators: int = Form(100, example=100),
+                max_depth: int = Form(10, example=10),
+                class_weight: class_weights = Form(class_weights.balanced, example="balanced"),
+                random_state: int = Form(42, example=42),
+                use_augmentation: bool = Form(False, example=False)
+        ):
+            return cls(**json.loads(json.dumps({
+                "out_path": out_path,
+                "n_estimators": n_estimators,
+                "max_depth": max_depth,
+                "class_weight": class_weight,
+                "random_state": random_state,
+                "use_augmentation": use_augmentation})))
         return _as_form
 
 
