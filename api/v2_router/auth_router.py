@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Cookie, Response
+from fastapi import APIRouter, Cookie, Request, Response
 from datetime import datetime
 from api.models.user import LoginResponse, TokenResponse,UserCreate,SignUpRequest, PasswordResetRequest,DbUser, ChangePasswordRequest
 from sqlalchemy.orm import Session
@@ -11,21 +11,27 @@ from typing import Annotated
 from email_service import send_email, Subject, Template
 import qrcode
 import io
-
+from slowapi import Limiter 
+from slowapi.util import get_remote_address
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
 MAX_ATTEMPTS = int(os.getenv("MAX_ATTEMPTS"))
 BACKEND_URL = os.getenv("BACKEND_URL")
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(
     tags=["authentication"],
     responses={404: {"description": "Not found"}},
 )
 
+
 @router.post("/register-user", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
     try:
         db_user = crud.get_user_by_username(db, username=user.username)
@@ -56,7 +62,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         raise serverErrorException(message=str(e))
 
 @router.post("/register-admin", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def register_admin(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")                      
+async def register_admin(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     """Register a new admin user."""
     try:
         db_user = crud.get_user_by_username(db, username=user.username)
@@ -87,7 +94,8 @@ async def register_admin(user: UserCreate, db: Session = Depends(get_db)):
         raise serverErrorException(message=str(e))
 
 @router.get("/confirm-email", responses={400: {"description": "Bad Request"},401:{"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def confirm_email(email_token: str, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def confirm_email(request: Request,email_token: str, db: Session = Depends(get_db)):
     """Endpoint to confirm user email."""
     try:
         _ = await auth.verify_email_token(email_token=email_token, db=db)
@@ -98,7 +106,8 @@ async def confirm_email(email_token: str, db: Session = Depends(get_db)):
         raise serverErrorException(message=str(e))
 
 @router.post("/login", responses={400: {"description": "Bad Request"}, 401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def login(user: SignUpRequest, response: Response, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request,user: SignUpRequest, response: Response, db: Session = Depends(get_db)):
     """Login endpoint."""
     try:
         attempts, is_max_attempts_reached = crud.Update_user_login_attempts(db, user.username)
@@ -160,7 +169,8 @@ async def login(user: SignUpRequest, response: Response, db: Session = Depends(g
         raise serverErrorException(message=str(e))
    
 @router.get("/token", responses={400: {"description": "Bad Request"}, 401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def token(refresh_token: Annotated[str | None, Cookie()] = None, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def token(request: Request, refresh_token: Annotated[str | None, Cookie()] = None, db: Session = Depends(get_db)):
     """Endpoint to retrieve token from cookies."""
     try:
         if not refresh_token:
@@ -180,7 +190,8 @@ async def token(refresh_token: Annotated[str | None, Cookie()] = None, db: Sessi
         raise serverErrorException(message=str(e))
 
 @router.post("/two-factor/setup", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def setup_two_factor_auth(current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def setup_two_factor_auth(request: Request, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Setup two-factor authentication for the current user."""
     try:
         if current_user.is_two_factor_enabled:
@@ -200,7 +211,8 @@ async def setup_two_factor_auth(current_user: DbUser = Depends(auth.get_current_
         raise serverErrorException(message=str(e))
 
 @router.post("/two-factor/disable", responses={400: {"description": "Bad Request"},401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}}   )
-async def disable_two_factor_auth(current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def disable_two_factor_auth(request: Request, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Disable two-factor authentication for the current user."""
     try:
 
@@ -212,7 +224,7 @@ async def disable_two_factor_auth(current_user: DbUser = Depends(auth.get_curren
         raise serverErrorException(message=str(e))
 
 @router.post("/two-factor/verify", responses={400: {"description": "Bad Request"},401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}}    )
-async def verify_two_factor_auth(totp:int, response: Response, current_user: DbUser = Depends(auth.get_otp_verifier), db: Session = Depends(get_db)):
+async def verify_two_factor_auth(request: Request, totp:int, response: Response, current_user: DbUser = Depends(auth.get_otp_verifier), db: Session = Depends(get_db)):
     """Verify two-factor authentication token."""
     try:
 
@@ -249,7 +261,8 @@ async def verify_two_factor_auth(totp:int, response: Response, current_user: DbU
     
 
 @router.post("/change-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def change_password(change_password_request: ChangePasswordRequest, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def change_password(request: Request, change_password_request: ChangePasswordRequest, current_user: DbUser = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Change the password for the current user."""
     try:
         is_valid_password = crud.verify_user_password(current_user, change_password_request.current_password)
@@ -265,7 +278,8 @@ async def change_password(change_password_request: ChangePasswordRequest, curren
         raise serverErrorException(message=str(e))
 
 @router.get("/forget-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def forget_password(email: str, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def forget_password(request: Request, email: str, db: Session = Depends(get_db)):
     """Endpoint to handle forget password requests."""
     try:
         db_user = crud.get_user_by_email(db, email=email)
@@ -287,7 +301,8 @@ async def forget_password(email: str, db: Session = Depends(get_db)):
         raise serverErrorException(message=str(e))
     
 @router.post("/reset-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def reset_password(reset_token: str, password_reset_request: PasswordResetRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def reset_password(request: Request, reset_token: str, password_reset_request: PasswordResetRequest, db: Session = Depends(get_db)):
     """Endpoint to reset password using reset token."""
     try:
         user = await auth.verify_password_reset_token(reset_token=reset_token, db=db)

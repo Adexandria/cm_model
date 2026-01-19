@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Cookie,UploadFile
+from fastapi import APIRouter, Cookie, Request,UploadFile
 from api.models.user import PredictionExplanationRequest, TrainModelRequestWithValidation,DbUser, PredictionRequest, TrainModelResponse
 from sqlalchemy.orm import Session
 from database import get_db
@@ -11,14 +11,20 @@ from pipeline import model_pipeline
 from blob.push_blob import upload_blob
 
 from inference import inference, inference_explanation
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter(
     tags=["content moderation"],
     responses={404: {"description": "Not found"}},
 )
 
+limiter = Limiter(key_func=get_remote_address)
+
+
 @router.post("/train-model", response_model=TrainModelResponse, responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
-async def train_model(model_name: str, file : UploadFile, hyperparameters: TrainModelRequestWithValidation = Depends(TrainModelRequestWithValidation.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
+@limiter.limit("5/minute")
+async def train_model(request: Request, model_name: str, file : UploadFile, hyperparameters: TrainModelRequestWithValidation = Depends(TrainModelRequestWithValidation.as_form()), current_user: DbUser = Depends(auth.get_current_admin)):
     """Endpoint to trigger model training."""
     try:
         if not file.filename.lower().endswith(".csv"):
@@ -100,10 +106,11 @@ async def delete_api_key(api_key_name: str, current_user: DbUser = Depends(auth.
 
 
 @router.post("/predict",responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def predict_content(request: PredictionRequest, model_name: str = "logistic_regression", user: DbUser = Depends(auth.get_user_by_api_key)):
+@limiter.limit("5/minute")
+async def predict_content(request: Request, prediction_request: PredictionRequest, model_name: str = "logistic_regression", user: DbUser = Depends(auth.get_user_by_api_key)):
     """Endpoint to predict content categories and generate explanations."""
     try:
-        labels, _ = inference(request.contents, model_path=f"{model_name}_model.pth")
+        labels, _ = inference(prediction_request.contents, model_path=f"{model_name}_model.pth")
         return {
             "labels": labels
         }
@@ -111,10 +118,11 @@ async def predict_content(request: PredictionRequest, model_name: str = "logisti
         raise serverErrorException(message=str(e))
 
 @router.post("/explain", responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
-async def explain_content(request: PredictionExplanationRequest, user: DbUser = Depends(auth.get_user_by_api_key)):
+@limiter.limit("5/minute")  
+async def explain_content(request: Request, prediction_explanation_request: PredictionExplanationRequest, user: DbUser = Depends(auth.get_user_by_api_key)):
     """Endpoint to explain content based on predicted categories."""
     try:
-        explanations = inference_explanation(input_texts=request.contents, labels=request.predicted_categories, use_flagged_prompt=True)
+        explanations = inference_explanation(input_texts=prediction_explanation_request.contents, labels=prediction_explanation_request.predicted_categories, use_flagged_prompt=True)
 
         return {
             "explanations": explanations
