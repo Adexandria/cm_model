@@ -5,3 +5,4 @@ __pycache__/
 .env
 !example.env
 data/
+notebook/.ipynb_checkpoints/Cyber_attacks_simulation-checkpoint.ipynb
