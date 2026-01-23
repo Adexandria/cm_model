@@ -17,19 +17,21 @@ def train_model(X_train, y_train,path='logistic_regression_model.pth', **kwargs)
 
     y_train = np.array(y_train, dtype=int)
 
-    print("Shape of y_train after conversion to list:", y_train.shape)
-    # Run this right before model.fit(X_train, y_train)
-    print("First row of y_train:", y_train[0])
-    print("Type of y_train:", type(y_train))
-    print("Shape of y_train:", y_train.shape)
+    print("Length of training labels:", len(y_train))
+
+    dual = kwargs.get('dual', 'auto')
+    if dual == 'true':
+        dual = True
+    elif dual == 'false':
+        dual = False
+    else:
+        dual = 'auto'
 
     classifier =  LinearSVC(
-            # CHANGED: Manually boost Class 6 (assuming '6' is the label)
-            # If your labels are strings, use 'class_name': 10
-            class_weight={0:1, 1:1, 2:1, 3:1, 4:1, 5:1, 6:10}, 
-            random_state=42,
-            C=1.5,
-            dual='auto'
+            class_weight=kwargs.get('class_weight', {0:1, 1:1, 2:1, 3:1, 4:1, 5:1, 6:10}), 
+            random_state=kwargs.get('random_state', 42),
+            C=kwargs.get('c', 1.5),
+            dual=dual
         )
     
     calibrated_svm = CalibratedClassifierCV(classifier,method='sigmoid')

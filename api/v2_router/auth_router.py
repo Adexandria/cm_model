@@ -52,18 +52,15 @@ async def register_user(request: Request, user: UserCreate, db: Session = Depend
 
         send_email(to_email=new_user.email, subject=Subject.EMAIL_CONFIRMATION, template=Template.EMAIL_CONFIRMATION, context=context)
         
-        user = LoginResponse(
-            username=new_user.username,
-            email=new_user.email
-        )
-
-        return user
+        return {
+            "message": "User registered successfully. Please check your email to confirm your address."
+        }
     except Exception as e:
         raise serverErrorException(message=str(e))
 
 @router.post("/register-admin", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
 @limiter.limit("5/minute")                      
-async def register_admin(request: Request, user: UserCreate, db: Session = Depends(get_db)):
+async def register_admin(request: Request, user: UserCreate, db: Session = Depends(get_db), current_admin: DbUser = Depends(auth.get_current_admin)):   
     """Register a new admin user."""
     try:
         db_user = crud.get_user_by_username(db, username=user.username)
@@ -311,3 +308,4 @@ async def reset_password(request: Request, reset_token: str, password_reset_requ
     except Exception as e:
         raise serverErrorException(message=str(e))
 
+## log out which deletes the refresh token from the db

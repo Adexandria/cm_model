@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Body, UploadFile
 import pandas
-from api.models.user import PredictionExplanationResponse, PredictionResponse, TrainModelRequest, TrainModelResponse
+from api.models.user import PredictionExplanationResponse, TrainModelRequest, TrainModelResponse
 from sqlalchemy.orm import Session
 from database import get_db
 from pipeline import model_pipeline
@@ -48,7 +48,7 @@ async def train_model(model_name: str, file : UploadFile,hyperparameters: TrainM
         print(e)
         raise serverErrorException(message=str(e))
     
-@router.post("/predict",response_model=PredictionResponse, responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
+@router.post("/predict", responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
 async def predict_model_content(contents: list[str], model_name: str = "logistic_regression", is_authenticated: bool = Depends(auth.authenticate_user_by_token)):
     """Endpoint to predict content categories and generate explanations."""
     try:
@@ -57,10 +57,11 @@ async def predict_model_content(contents: list[str], model_name: str = "logistic
     
         labels, predictions = inference(contents, model_path=f"{model_name}_model.pth")
 
-        return PredictionResponse(
-            labels=labels,
-            predictions=predictions
-        )
+        return {
+            "labels": labels,
+            "predictions": predictions
+        }
+           
     except Exception as e:
         raise serverErrorException(message=str(e))
 

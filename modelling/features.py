@@ -6,6 +6,7 @@ from typing import List
 import pandas as pd
 from pandas import DataFrame
 import spacy
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from config import FIELDS
 
@@ -75,12 +76,10 @@ def dataframe_feature_extraction(data: pd.DataFrame,
     # Combine case_name + summary as one 'case' column
     case = data[FIELDS["case_name"]].fillna('') + "|" + data[FIELDS["summary"]].fillna('')
     summary_issue = data.get(FIELDS["summary_issue"])
-    llm_category = data.get(FIELDS["FB_category"])
     category = data.get(FIELDS["category"])
     full_abstract = data.get(FIELDS["full_abstract"])
 
     # Normalize categories and save cleaned lists
-    _ = normalize_category_labels(llm_category, path=os.path.join('data', 'llm_categories.txt'))
     cleaned_category = normalize_category_labels(category, path=os.path.join('data', 'categories.txt'))
 
     # Generate one-hot labels and cleaned categories
@@ -90,7 +89,6 @@ def dataframe_feature_extraction(data: pd.DataFrame,
     extracted_data = pd.DataFrame({
         "case": case,
         "summary_issue": summary_issue,
-        "llm_category": llm_category,
         "category": categories_series,
         "full_abstract": full_abstract,
         "labels": labels_df
@@ -219,10 +217,8 @@ def data_augmentation(data: pd.DataFrame, labels: pd.Series) -> tuple[pd.DataFra
             row_aug['summary_issue'] = robust_augment(row['summary_issue'], perturbation=0.10)
             
             new_rows.append(row_aug)
-            new_labels.append(label) # DUPLICATE the label for the augmented row
+            new_labels.append(label) 
         except Exception as e:
-            # If augmentation fails (e.g. empty string), we don't add the row,
-            # and we DON'T add the label. This keeps alignment safe.
             print(f"Augmentation failed for a row: {e}")
             continue
 
@@ -251,29 +247,24 @@ def feature_analysis(path: str = 'extracted_features.csv'):
     print("Duplicated rows:", data.duplicated().sum())
     print("Total shape:", data.shape)
 
-    if 'category' in data.columns:
+
+    if 'category' in data.columns and path == 'extracted_features.csv': 
         exploded = data['category'].apply(ast.literal_eval).explode()
         print("Category distribution:\n", exploded.value_counts())
+    else:
+        print("Category distribution:\n", data['category'].value_counts())
 
 # -------------------------
 # Main workflow
 # -------------------------
 if __name__ == "__main__":
     print("Performing feature extraction ...")
+    feature_analysis('Facebook _Supreme Court_Cases.csv')
+
     feature_extraction()
 
     print("Analyzing extracted features ...")
+
     feature_analysis('extracted_features.csv')
-
-    df = pd.read_csv("data/extracted_features.csv")
-    labels = pd.Series(df["labels"])
-
-    print("Performing data augmentation ...")
-    df_aug, labels_aug = data_augmentation(df, labels)
-
-    # Save augmented dataset
-    df_aug.to_csv("data/extracted_features_augmented.csv", index=False)
-    print("Analyzing augmented data ...")
-    feature_analysis('extracted_features_augmented.csv')
 
     print("All tasks completed.")

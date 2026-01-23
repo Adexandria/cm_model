@@ -6,8 +6,13 @@ from api.v2_router.user_router import router as user_v2_router
 from api.v1_router.cm_router import router as cm_v1_router
 from api.v1_router.auth_router import router as auth_v1_router
 from api.v1_router.user_router import router as user_v1_router
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from fastapi.openapi.docs import get_swagger_ui_html
+
+from database import init_db
 
 
 def create_app() :
@@ -25,7 +30,8 @@ def create_app() :
     v2_app = FastAPI(title="Content Moderation API V2",
                   description="API for content moderation V2 with user authentication and two-factor authentication support.",
                   version="2.0.0")
-    
+    v2_app.state.limiter = Limiter(key_func=get_remote_address)
+    v2_app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     v2_app.include_router(auth_v2_router)
     v2_app.include_router(user_v2_router)
     v2_app.include_router(cm_v2_router)
@@ -60,5 +66,6 @@ def create_app() :
 
 if __name__ == "__main__":
     import uvicorn
+    init_db()
     app = create_app()
     uvicorn.run(app, host="127.0.0.1", port=8000)

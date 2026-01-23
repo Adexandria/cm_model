@@ -8,7 +8,7 @@ from fastapi import Depends
 from exception import badRequestException, notFoundException, serverErrorException
 import pandas as pd
 from pipeline import model_pipeline
-from blob.push_blob import upload_blob
+from blob.push_blob import upload_blob, upload_secured_blob
 
 from inference import inference, inference_explanation
 from slowapi import Limiter
@@ -51,7 +51,7 @@ async def train_model(request: Request, model_name: str, file : UploadFile, hype
             }
         
         accuracy, report = model_pipeline(data=data, **kwargs)
-        url = upload_blob(report, blob_name=f"{model_name}_report.json")
+        url = upload_secured_blob(report, blob_name=f"{model_name}_report.json")
 
         return TrainModelResponse(
                     message="Model training initiated successfully",
@@ -107,7 +107,18 @@ async def delete_api_key(api_key_name: str, current_user: DbUser = Depends(auth.
 
 @router.post("/predict",responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
 @limiter.limit("5/minute")
-async def predict_content(request: Request, prediction_request: PredictionRequest, model_name: str = "logistic_regression", user: DbUser = Depends(auth.get_user_by_api_key)):
+async def predict_content(request: Request, prediction_request: PredictionRequest, user: DbUser = Depends(auth.get_user_by_api_key)):
+    """Endpoint to predict content categories and generate explanations."""
+    try:
+        labels, _ = inference(prediction_request.contents)
+        return {
+            "labels": labels
+        }
+    except Exception as e:
+        raise serverErrorException(message=str(e))
+@router.post("/models/{model_name}/predict",responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
+@limiter.limit("5/minute")
+async def admin_predict_content(request: Request, prediction_request: PredictionRequest, model_name: str = "linear_svc", user: DbUser = Depends(auth.get_current_admin)):
     """Endpoint to predict content categories and generate explanations."""
     try:
         labels, _ = inference(prediction_request.contents, model_path=f"{model_name}_model.pth")
@@ -117,6 +128,7 @@ async def predict_content(request: Request, prediction_request: PredictionReques
     except Exception as e:
         raise serverErrorException(message=str(e))
 
+# another predict but for admin
 @router.post("/explain", responses={401: {"description": "Unauthorized"}, 500: {"description": "Server Error"}})
 @limiter.limit("5/minute")  
 async def explain_content(request: Request, prediction_explanation_request: PredictionExplanationRequest, user: DbUser = Depends(auth.get_user_by_api_key)):

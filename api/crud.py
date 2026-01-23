@@ -14,6 +14,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+TESTUSER_USERNAME = os.getenv("TESTUSER_USERNAME")
+TESTUSER_PASSWORD = os.getenv("TESTUSER_PASSWORD")
+TESTUSER_EMAIL = os.getenv("TESTUSER_EMAIL")
 EXPIRY_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 MAX_REQUESTS_PER_DAY = int(os.getenv("MAX_REQUESTS_PER_DAY"))
 MAX_API_KEYS_PER_USER = int(os.getenv("MAX_API_KEYS_PER_USER"))
@@ -331,3 +338,56 @@ def update_user_request_count(db: Session, user: DbUser):
     
     db.commit()
     db.refresh(user)
+
+
+def add_default_admin_user_v1(db: Session):
+    """Add a default admin user if no users exist."""
+    user_count = db.query(DbUser).filter(DbUser.username == "admin").count()
+    if user_count == 0:
+        default_admin_username = "admin"
+        default_admin_email = "admin@example.com"
+        default_admin_password = "admin1234"
+        create_user_v1(
+            db,
+            username=default_admin_username,
+            password=default_admin_password,
+            email=default_admin_email,
+            is_admin=True
+        )
+        print("Default admin user created.")
+
+def add_default_admin_user_v2(db: Session):
+    """Add a default admin user if no users exist."""
+    user_count = db.query(DbUser).filter(DbUser.username == ADMIN_USERNAME).count()
+    if user_count == 0:
+        create_user(
+            db,
+            UserCreate(
+                username=ADMIN_USERNAME,
+                email=ADMIN_EMAIL,
+                password=ADMIN_PASSWORD,
+                repeat_password=ADMIN_PASSWORD
+            ),
+            is_admin=True
+        )
+        user = get_user_by_username(db, ADMIN_USERNAME)
+        confirm_user_email(db, user)
+        print("Default admin user created.")
+
+def add_test_user(db: Session):
+    """Add a test user for testing purposes."""
+    user_count = db.query(DbUser).filter(DbUser.username == TESTUSER_USERNAME).count()
+    if user_count == 0:
+        create_user(
+            db,
+            UserCreate(
+                username=TESTUSER_USERNAME,
+                email=TESTUSER_EMAIL,
+                password=TESTUSER_PASSWORD,
+                repeat_password=TESTUSER_PASSWORD
+            ),            
+            is_admin=False
+        )
+        user = get_user_by_username(db, TESTUSER_USERNAME)
+        confirm_user_email(db, user)
+        print("Test user created.")

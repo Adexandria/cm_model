@@ -12,7 +12,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/user", response_model=UsernameResponse, responses={401: {"description": "Unauthorized"},404: {"description": "Not Found"}, 500: {"description": "Server Error"}})
+@router.get("/users", response_model=UsernameResponse, responses={401: {"description": "Unauthorized"},404: {"description": "Not Found"}, 500: {"description": "Server Error"}})
 async def get_user(username: str, db: Session = Depends(get_db), is_authenticated: bool = Depends(auth.authenticate_user_by_token)):
     """Get user details by username."""
     try:

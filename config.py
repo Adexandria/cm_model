@@ -31,10 +31,7 @@ CATEGORIES = [
     "graphic content",
     "dangerous individuals",
     "organisations",
-    "other",
-    "nudity & sexual activity",
-    "regulated goods",
-    "bullying & harassment"
+    "other"
 ]
 
 FIELDS = {
@@ -45,5 +42,4 @@ FIELDS = {
     "category":"category",
     "full_abstract":"full abstract "
 }
-ALLOWED_FILE_TYPES = ["csv", "xlsx", "xls"]
 DANGEROUS_PREFIXES = ("=", "+", "-", "@")

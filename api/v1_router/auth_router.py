@@ -1,15 +1,23 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from api.models.user import LoginResponse, AccessRefreshTokenResponse, AccessTokenResponse
 from sqlalchemy.orm import Session
 from database import get_db
 from api import auth
 from api import crud
 from exception import badRequestException, unauthorizedException, serverErrorException
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 router = APIRouter(
     tags=["authentication"],
     responses={404: {"description": "Not found"}},
 )
+
+
 
 @router.post("/register-user",response_model=LoginResponse, responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
 async def register_user(email: str, username: str, password: str, db: Session = Depends(get_db)):

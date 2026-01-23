@@ -78,29 +78,34 @@ def model_pipeline(data: pd.DataFrame, **kwargs):
     
     # Step 2: Data Preparation
     data = pd.read_csv(f"data/{kwargs.get('out_path')}")
-    train_data = data[['case', 'summary_issue', 'full_abstract']]
-    test_data = data['labels']
-
-    print("Y distribution:", test_data.value_counts())
-
-    X_train, X_test, y_train, y_test = train_test_split(train_data, test_data, test_size=0.2, random_state=42, shuffle=True,stratify=test_data)
+    X_train, X_test, y_train, y_test = train_test_split(
+    data[['case', 'summary_issue', 'full_abstract']], # Pass full DataFrame
+    data['labels'], 
+    test_size=0.2, 
+    random_state=42,
+    stratify=data['labels']
+)
     
     if kwargs.get('use_augmentation', False):
         print("Performing data augmentation on training set ...")
         X_train, y_train = data_augmentation(X_train, y_train)
-        print("Data augmentation completed.")
-   
+        print(f"Data augmentation completed. New training size: {len(X_train)}")
+
+    print("Concatenating columns...")
     X_train = X_train['case'] + " " + X_train['summary_issue'] + " " + X_train['full_abstract']
     X_test = X_test['case'] + " " + X_test['summary_issue'] + " " + X_test['full_abstract']
-
-    print("=Label distribution in training set=\n", pd.Series(y_train).apply(eval).value_counts())
-    print("=Label distribution in test set=\n", pd.Series(y_test).apply(eval).value_counts())
-    print("Sample of text data:\n", X_train.iloc[10])
+    print("Concatenation completed.")
+    
+    if isinstance(y_train.iloc[0], str):
+        print("=Label distribution in training set=\n", y_train.apply(eval).value_counts())
+    else:
+        # If augmentation already converted them to lists, just print
+        print("=Label distribution (Already Lists)=\n", y_train.astype(str).value_counts())
 
     # Step 3: Model Training
     print("Performing model training ...")
 
-    model = train_model(X_train, y_train, path=kwargs.get('model_path', 'logistic_regression_model.pth'), **kwargs)
+    model = train_model(X_train, y_train, path=kwargs.get('model_path', 'linear_svm_model.pth'), **kwargs)
     scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
 
     print(f"True Accuracy: {scores.mean():.2f} (+/- {scores.std():.2f})")

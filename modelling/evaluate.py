@@ -1,6 +1,7 @@
 import ast
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report
+from config import CATEGORIES
 
 def evaluate_model(model, X_test, y_test):
     """Evaluates the model on test data and prints accuracy and classification report."""
@@ -15,8 +16,8 @@ def evaluate_model(model, X_test, y_test):
     y_pred = (y_preda >= 0.25).astype(int)
     print("Predictions:", type(y_pred[0]))
     print("True Labels:", type(y_test[0]))
-    accuracy = accuracy_score(y_test_encoded, y_pred,)
-    report = classification_report(y_test_encoded, y_pred)
+    accuracy = accuracy_score(y_test_encoded, y_pred, sample_weight="balanced")
+    report = classification_report(y_test_encoded, y_pred, target_names=CATEGORIES)
 
     print(f"Accuracy: {accuracy:.4f}")
     print("Classification Report:\n", report)
