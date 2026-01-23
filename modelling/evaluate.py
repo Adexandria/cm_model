@@ -10,9 +10,9 @@ def evaluate_model(model, X_test, y_test):
     y_test_encoded = np.array(y_test, dtype=int)
     
     print("Shape of y_test after conversion to list:", y_test_encoded.shape)
-    y_preda = model.predict_proba(X_test)
-    y_prob_matrix = np.array([prob[:, 1] for prob in y_preda]).T
-    y_pred = (y_prob_matrix >= 0.5).astype(int)
+    y_preda = model.predict(X_test)
+    #y_prob_matrix = np.array([prob[:, 1] for prob in y_preda]).T
+    y_pred = (y_preda >= 0.25).astype(int)
     print("Predictions:", type(y_pred[0]))
     print("True Labels:", type(y_test[0]))
     accuracy = accuracy_score(y_test_encoded, y_pred,)
