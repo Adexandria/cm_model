@@ -21,6 +21,8 @@ load_dotenv()
 security = HTTPBearer(auto_error=True)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
+V1_SECRET_KEY = os.getenv("V1_SECRET_KEY")
+V1_ALGORITHM = os.getenv("V1_ALGORITHM")
 TWO_FACTOR = os.getenv("TWO_FACTOR_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 EXPIRY_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -30,7 +32,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_access_token(): 
     """Create a JWT access token."""
-    encoded_jwt = jwt.encode({},key=SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode({},key=V1_SECRET_KEY, algorithm=V1_ALGORITHM)
     return encoded_jwt
 
 def create_access_token_with_expiry(data: dict) -> str:
@@ -152,7 +154,7 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
 async def authenticate_user_by_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Authenticate user using JWT token."""
     try:
-        _ = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        _ = jwt.decode(credentials.credentials, V1_SECRET_KEY, algorithms=[V1_ALGORITHM])
         return True
     except JWTError:
         raise unauthorizedException()
@@ -180,6 +182,7 @@ async def verify_email_token(email_token: str, db: Session = Depends(get_db)) ->
     crud.confirm_user_email(db, user)
     
     return user
+
 async def get_otp_verifier(twofa_token: Annotated[str | None, Cookie()] = None, db: Session = Depends(get_db)) -> DbUser:
     """Verify if user has been authenticated and requires two-factor authentication"""
     try:
