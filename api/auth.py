@@ -22,7 +22,6 @@ security = HTTPBearer(auto_error=True)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 V1_SECRET_KEY = os.getenv("V1_SECRET_KEY")
-V1_ALGORITHM = os.getenv("V1_ALGORITHM")
 TWO_FACTOR = os.getenv("TWO_FACTOR_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 EXPIRY_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -32,7 +31,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_access_token(): 
     """Create a JWT access token."""
-    encoded_jwt = jwt.encode({},key=V1_SECRET_KEY, algorithm=V1_ALGORITHM)
+    encoded_jwt = jwt.encode({},key=V1_SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 def create_access_token_with_expiry(data: dict) -> str:
