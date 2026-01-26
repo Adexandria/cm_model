@@ -27,7 +27,6 @@ async def get_current_user_details(current_user: DbUser = Depends(auth.get_curre
             username=current_user.username,
             email=current_user.email,
             api_keys=[api_key.name for api_key in current_user.api_keys],
-            roles=[role.name for role in current_user.roles],
             last_login=current_user.last_login.isoformat(),
             api_key_quota=current_user.request_count.count,
             max_requests_per_day=MAX_REQUESTS_PER_DAY,

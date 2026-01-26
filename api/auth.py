@@ -153,7 +153,7 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
 async def authenticate_user_by_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Authenticate user using JWT token."""
     try:
-        _ = jwt.decode(credentials.credentials, V1_SECRET_KEY, algorithms=[V1_ALGORITHM])
+        _ = jwt.decode(credentials.credentials, V1_SECRET_KEY, algorithms=[ALGORITHM])
         return True
     except JWTError:
         raise unauthorizedException()

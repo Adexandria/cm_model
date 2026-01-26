@@ -120,7 +120,6 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     username: str
     email: EmailStr
-    roles: list[str]
     is_locked: bool
     api_keys: list[str]
     last_login: str
