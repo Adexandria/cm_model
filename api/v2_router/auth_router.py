@@ -44,7 +44,7 @@ async def register_user(request: Request, user: UserCreate, db: Session = Depend
     
         new_user = crud.create_user(db=db, user=user, is_admin=False)
         email_token = auth.generate_email_confirmation_token(userId=new_user.id,email=new_user.email)
-        confirmation_link = f"{BACKEND_URL}/api/v2/authentication/confirm-email?email_token={email_token}"
+        confirmation_link = f"{BACKEND_URL}/api/v2/confirm-email?email_token={email_token}"
         context = {
         "username": new_user.username,
         "verification_url": confirmation_link
@@ -73,7 +73,7 @@ async def register_admin(request: Request, user: UserCreate, db: Session = Depen
     
         new_user = crud.create_user(db=db, user=user, is_admin=True)
         email_token = auth.generate_email_confirmation_token(userId=new_user.id,email=new_user.email)
-        confirmation_link = f"{BACKEND_URL}/api/v2/authentication/confirm-email?email_token={email_token}"
+        confirmation_link = f"{BACKEND_URL}/api/v2/confirm-email?email_token={email_token}"
 
         context = {
         "username": new_user.username,
@@ -107,25 +107,24 @@ async def confirm_email(request: Request,email_token: str, db: Session = Depends
 async def login(request: Request,user: SignUpRequest, response: Response, db: Session = Depends(get_db)):
     """Login endpoint."""
     try:
-        attempts, is_max_attempts_reached = crud.Update_user_login_attempts(db, user.username)
         db_user = crud.authenticate_user(db, user.username, user.password)
 
-        if is_max_attempts_reached:
-            user = crud.get_user_by_username(db, user.username)
-            context = {
+        if not db_user:
+            attempts, is_max_attempts_reached = crud.Update_user_login_attempts(db, user.username)
+            if is_max_attempts_reached:
+                user = crud.get_user_by_username(db, user.username)
+                context = {
                 "Company_Name": "Content Moderation API V2",
                 "Time_Stamp" : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Unlock_Link": f"{BACKEND_URL}/api/v2/authentication/forgot-password?email={user.email}"
-            }
-            send_email(to_email=user.email, subject=Subject.MAX_LOGIN_ATTEMPTS, template=Template.MAX_LOGIN_ATTEMPTS, context=context)
-            raise unauthorizedException(message="Maximum login attempts exceeded. Please try again later.")
-        
-        if not db_user:
-            raise unauthorizedException(message="Invalid username or password, Only" + str(MAX_ATTEMPTS - attempts) + " attempts left.")
+                "Unlock_Link": f"{BACKEND_URL}/api/v2/forgot-password?email={user.email}"
+                }
+                send_email(to_email=user.email, subject=Subject.MAX_LOGIN_ATTEMPTS, template=Template.MAX_LOGIN_ATTEMPTS, context=context)
+                raise unauthorizedException(message="Maximum login attempts exceeded. Please try again later.")
+            raise unauthorizedException(message="Invalid username or password, Only " + str(MAX_ATTEMPTS - attempts) + " attempts left.")
 
         if not db_user.is_email_confirmed:
             email_token = auth.generate_email_confirmation_token(userId=db_user.id,email=db_user.email)
-            confirmation_link = f"{BACKEND_URL}/api/v2/authentication/confirm-email?email_token={email_token}"
+            confirmation_link = f"{BACKEND_URL}/api/v2/confirm-email?email_token={email_token}"
             send_email(to_email=db_user.email, subject=Subject.EMAIL_CONFIRMATION, template=Template.EMAIL_CONFIRMATION, context= {
             "username": db_user.username,
             "verification_url": confirmation_link
@@ -274,10 +273,10 @@ async def change_password(request: Request, change_password_request: ChangePassw
     except Exception as e:
         raise serverErrorException(message=str(e))
 
-@router.get("/forget-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
+@router.get("/forgot-password", responses={400: {"description": "Bad Request"}, 500: {"description": "Server Error"}})
 @limiter.limit("5/minute")
-async def forget_password(request: Request, email: str, db: Session = Depends(get_db)):
-    """Endpoint to handle forget password requests."""
+async def forgot_password(request: Request, email: str, db: Session = Depends(get_db)):
+    """Endpoint to handle forgot password requests."""
     try:
         db_user = crud.get_user_by_email(db, email=email)
         if not db_user:
@@ -308,4 +307,3 @@ async def reset_password(request: Request, reset_token: str, password_reset_requ
     except Exception as e:
         raise serverErrorException(message=str(e))
 
-## log out which deletes the refresh token from the db
